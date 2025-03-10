@@ -15,19 +15,19 @@ import time
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-dataset = getattr(data, args.dataset)('/data/ordinal')
-num_classes = dataset.K
+dataset_module = getattr(data, args.dataset)
 
 transforms = v2.Compose([
     v2.Resize((224, 224)),
-    v2.RandomHorizontalFlip(0.5 if dataset.HFLIP else 0),
-    v2.RandomVerticalFlip(0.5 if dataset.VFLIP else 0),
+    v2.RandomHorizontalFlip(0.5 if dataset_module.HFLIP else 0),
+    v2.RandomVerticalFlip(0.5 if dataset_module.VFLIP else 0),
     v2.ColorJitter(0.1, 0.1),
     v2.ToDtype(torch.float32, True),
     v2.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
 ])
 
-dataset = getattr(data, args.dataset)('/data/ordinal', transforms)
+dataset = dataset_module('/data/ordinal', transforms)
+num_classes = dataset.K
 
 dataset = data.split(dataset, 'train', 0)
 dataset = torch.utils.data.DataLoader(dataset, 32, True, num_workers=4, pin_memory=True)
