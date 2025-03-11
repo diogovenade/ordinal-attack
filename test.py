@@ -17,7 +17,7 @@ transforms = v2.Compose([
     v2.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
 ])
 
-dataset = getattr(data, args.dataset)('/data/ordinal', transforms, 'test', 0)
+dataset = getattr(data, args.dataset)('/data/ordinal', transforms)
 num_classes = dataset.K
 dataloader = torch.utils.data.DataLoader(dataset, 32, False, num_workers=4, pin_memory=True)
 
