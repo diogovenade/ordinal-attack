@@ -35,6 +35,7 @@ dataset = torch.utils.data.DataLoader(dataset, 32, True, num_workers=4, pin_memo
 loss_function = getattr(losses, args.loss)(num_classes)
 
 model = torchvision.models.resnet50(num_classes=loss_function.how_many_outputs())
+model.loss = loss_function
 model.to(device)
 opt = torch.optim.AdamW(model.parameters())
 

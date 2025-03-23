@@ -1,4 +1,5 @@
-/__pycache__/
-/data/
-*.pth
-sbatch-*.txt
+__pycache__
+sbatch
+metrics
+models
+attacks

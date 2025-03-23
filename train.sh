@@ -1,6 +1,9 @@
 #!/bin/bash
+MODELS="DHCI FFB FGNET"
 LOSSES="CrossEntropy BinomialUnimodal_CE CO2 UnimodalNet"
-for LOSS in $LOSSES; do
-    echo "train $LOSS"
-    sbatch python3 train.py FFB $LOSS model-FFB-$LOSS.pth
+
+for MODEL in $MODELS; do
+    for LOSS in $LOSSES; do
+        sbatch python train.py $MODEL $LOSS models/model-$MODEL-$LOSS.pth
+    done
 done
