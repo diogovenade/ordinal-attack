@@ -82,6 +82,7 @@ class DHCI(ImageDataset):
 class FGNET(ImageDataset):
     # https://yanweifu.github.io/FG_NET_data/
     K = 70
+    HFLIP = True
     def __init__(self, root, transform):
         root = os.path.join(root, 'FGNET', 'images')
         files = sorted(os.listdir(root))
