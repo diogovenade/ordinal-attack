@@ -58,7 +58,6 @@ for images, labels in dataloader:
     accuracy.update(preds, labels)
     one_off.update(preds, labels)
     mae.update(preds, labels)
-    break  # DEBUG
 
 results = (
     f'Accuracy: {accuracy.compute().item():.4f}\n'
