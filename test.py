@@ -53,7 +53,7 @@ for images, labels in dataloader:
 
     with torch.no_grad():
         preds = model(images)
-    preds = preds.argmax(dim=1)
+    preds = model.loss.to_classes(preds)
 
     accuracy.update(preds, labels)
     one_off.update(preds, labels)
