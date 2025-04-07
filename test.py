@@ -1,4 +1,5 @@
 import argparse
+import csv
 parser = argparse.ArgumentParser()
 parser.add_argument('dataset')
 parser.add_argument('model_path')
@@ -10,10 +11,12 @@ args = parser.parse_args()
 
 import torch
 import data
-from mymetrics import OneOff, MeanAbsoluteError 
+from mymetrics import OneOff, MeanAbsoluteError, QuadraticWeightedKappa
 from torcheval.metrics import MulticlassAccuracy
 from torchvision.transforms import v2
 from advertorch import attacks
+from losses import CrossEntropy
+import torch.nn.functional as F
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -33,11 +36,19 @@ model.eval()
 accuracy = MulticlassAccuracy(num_classes=num_classes).to(device)
 one_off = OneOff()
 mae = MeanAbsoluteError()
+qwk = QuadraticWeightedKappa()
+
+def cross_entropy_loss(pred, true):
+    # pytorch CrossEntropy works with logits, but we want to give probabilities
+    probs = model.to_probabilities(pred)
+    return F.nll_loss(torch.log(probs), true)
+def model_loss(pred, true):
+    return model.compute_loss(pred, true)
 
 adversary = None
 if args.attack == 'GradientSignAttack':
-    adversary = attacks.GradientSignAttack(model, lambda pred, true: model.loss(pred, true).sum(), 
-                                           eps=args.epsilon, targeted = args.targeted)
+    ce_loss = CrossEntropy(num_classes)
+    adversary = attacks.GradientSignAttack(model, cross_entropy_loss, eps=args.epsilon, targeted=args.targeted)
 
 for images, labels in dataloader:
     images = images.to(device)
@@ -48,8 +59,9 @@ for images, labels in dataloader:
             target_labels = (labels + 1) % num_classes
         else:
             target_labels = labels
-            images.requires_grad = True
-            images = adversary.perturb(images, target_labels)
+        
+        images.requires_grad = True
+        images = adversary.perturb(images, target_labels)
 
     with torch.no_grad():
         preds = model(images)
@@ -58,12 +70,16 @@ for images, labels in dataloader:
     accuracy.update(preds, labels)
     one_off.update(preds, labels)
     mae.update(preds, labels)
+    qwk.update(preds, labels)
 
-results = (
-    f'Accuracy: {accuracy.compute().item():.4f}\n'
-    f'One-off Accuracy: {one_off.compute():.4f}\n'
-    f'Mean Absolute Error (MAE): {mae.compute():.4f}\n'
-)
+results = {
+    'Accuracy': accuracy.compute().item(),
+    'One-off Accuracy': one_off.compute(),
+    'Mean Absolute Error (MAE)': mae.compute(),
+    'Quadratic Weighted Kappa (QWK)': qwk.compute()
+}
 
-with open(args.output, 'w') as f:
-    f.write(results)
+with open(args.output, 'w', newline='') as f:
+    writer = csv.DictWriter(f, fieldnames=results.keys())
+    writer.writeheader()
+    writer.writerow(results)

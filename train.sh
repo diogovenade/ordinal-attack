@@ -1,9 +1,9 @@
 #!/bin/bash
-MODELS="DHCI FFB FGNET"
-LOSSES="CrossEntropy BinomialUnimodal_CE CO2 UnimodalNet"
+DATASETS="CARSDB CSAW_M FFB FOCUSPATH UTKFACE"
+LOSSES="CrossEntropy BinomialUnimodal_CE CO2 UnimodalNet OrdinalEncoding"
 
-for MODEL in $MODELS; do
+for DATASET in $DATASETS; do
     for LOSS in $LOSSES; do
-        sbatch python train.py $MODEL $LOSS models/model-$MODEL-$LOSS.pth
+        sbatch python train.py $DATASET $LOSS models/model-$DATASET-$LOSS.pth
     done
 done
