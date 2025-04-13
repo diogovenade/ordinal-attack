@@ -4,6 +4,6 @@ LOSSES="CrossEntropy BinomialUnimodal_CE CO2 UnimodalNet OrdinalEncoding"
 
 for DATASET in $DATASETS; do
     for LOSS in $LOSSES; do
-        sbatch python train.py $DATASET $LOSS models/model-$DATASET-$LOSS.pth
+        python train.py $DATASET $LOSS models/model-$DATASET-$LOSS.pth
     done
 done

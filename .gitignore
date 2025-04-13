@@ -1,5 +1,3 @@
 __pycache__
-sbatch
-metrics
 models
-attacks
+results.csv
