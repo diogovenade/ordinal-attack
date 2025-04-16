@@ -5,6 +5,8 @@ parser.add_argument('dataset')
 parser.add_argument('model_path')
 parser.add_argument('--attack', type=str, default=None)
 parser.add_argument('--epsilon', type=float, default=0.0)
+parser.add_argument('--targeted', type=bool, default=False)
+parser.add_argument('--attack_target', type=str, default='next_class', choices=['next_class', 'furthest_class'])
 args = parser.parse_args()
 
 import torch
@@ -44,7 +46,7 @@ def cross_entropy_loss(pred, true):
 adversary = None
 if args.attack == 'GradientSignAttack':
     adversary = attacks.GradientSignAttack(model, lambda pred, true: model.loss(pred, true).sum(), 
-                                           eps=args.epsilon, targeted=False)
+                                           eps=args.epsilon, targeted=args.targeted)
 
 for images, labels in dataloader:
     images = images.to(device)
@@ -52,7 +54,14 @@ for images, labels in dataloader:
 
     if adversary:
         images.requires_grad = True
-        images = adversary.perturb(images, labels)
+        if args.targeted:
+            if args.attack_target == 'next_class':
+                target_labels = torch.where(labels == num_classes - 1, labels - 1, labels + 1)
+            elif args.attack_target == 'furthest_class':
+                target_labels = torch.where(labels < num_classes // 2, num_classes - 1, 0)
+            images = adversary.perturb(images, target_labels)
+        else:
+            images = adversary.perturb(images, labels)
 
     with torch.no_grad():
         preds = model(images)
@@ -71,4 +80,6 @@ results = {
 }
 
 loss = os.path.basename(args.model_path).split('-')[-1].replace('.pth', '')
-print(f"{args.dataset},{loss},{args.epsilon},{results['Accuracy']},{results['OneOffAccuracy']},{results['MAE']},{results['QWK']}")
+targeted = "yes" if args.targeted else "no"
+target = args.attack_target if args.targeted else "none"
+print(f"{args.dataset},{loss},{args.epsilon},{targeted},{target},{results['Accuracy']},{results['OneOffAccuracy']},{results['MAE']},{results['QWK']}")
