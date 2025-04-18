@@ -7,6 +7,7 @@ parser.add_argument('--attack', type=str, default=None)
 parser.add_argument('--epsilon', type=float, default=0.0)
 parser.add_argument('--targeted', type=bool, default=False)
 parser.add_argument('--attack_target', type=str, default='next_class', choices=['next_class', 'furthest_class'])
+parser.add_argument('--attack_loss', type=str, default='model_loss', choices=['model_loss', 'cross_entropy'])
 args = parser.parse_args()
 
 import torch
@@ -37,15 +38,17 @@ one_off = OneOff()
 mae = MeanAbsoluteError()
 qwk = QuadraticWeightedKappa()
 
-'''
 def cross_entropy_loss(pred, true):
-    probs = F.softmax(pred, dim=1)
+    probs = model.loss.to_proba(pred)
     return F.nll_loss(torch.log(probs), true)
-'''
 
 adversary = None
 if args.attack == 'GradientSignAttack':
-    adversary = attacks.GradientSignAttack(model, lambda pred, true: model.loss(pred, true).sum(), 
+    if (args.attack_loss == 'cross_entropy'):
+        adversary = attacks.GradientSignAttack(model, lambda pred, true: cross_entropy_loss(pred, true), 
+                                               eps=args.epsilon, targeted=args.targeted)
+    else:
+        adversary = attacks.GradientSignAttack(model, lambda pred, true: model.loss(pred, true).sum(), 
                                            eps=args.epsilon, targeted=args.targeted)
 
 for images, labels in dataloader:
