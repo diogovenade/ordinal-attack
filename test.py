@@ -3,11 +3,11 @@ import os
 parser = argparse.ArgumentParser()
 parser.add_argument('dataset')
 parser.add_argument('model_path')
-parser.add_argument('--attack', type=str, default=None)
+parser.add_argument('--attack', type=str, default='none')
 parser.add_argument('--epsilon', type=float, default=0.0)
 parser.add_argument('--targeted', type=bool, default=False)
 parser.add_argument('--attack_target', type=str, default='next_class', choices=['next_class', 'furthest_class'])
-parser.add_argument('--attack_loss', type=str, default='model_loss', choices=['model_loss', 'cross_entropy'])
+parser.add_argument('--attack_loss', type=str, default='ModelLoss', choices=['ModelLoss', 'CrossEntropy'])
 args = parser.parse_args()
 
 import torch
@@ -43,13 +43,20 @@ def cross_entropy_loss(pred, true):
     return F.nll_loss(torch.log(probs), true)
 
 adversary = None
-if args.attack == 'GradientSignAttack':
-    if (args.attack_loss == 'cross_entropy'):
+if args.attack == 'GSA':
+    if (args.attack_loss == 'CrossEntropy'):
         adversary = attacks.GradientSignAttack(model, lambda pred, true: cross_entropy_loss(pred, true), 
                                                eps=args.epsilon, targeted=args.targeted)
     else:
         adversary = attacks.GradientSignAttack(model, lambda pred, true: model.loss(pred, true).sum(), 
                                            eps=args.epsilon, targeted=args.targeted)
+elif args.attack == 'FFA':
+    if (args.attack_loss == 'CrossEntropy'):
+        adversary = attacks.FastFeatureAttack(model, lambda pred, true: cross_entropy_loss(pred, true), 
+                                               eps=args.epsilon)
+    else:
+        adversary = attacks.GradientSignAttack(model, lambda pred, true: model.loss(pred, true).sum(), 
+                                           eps=args.epsilon)
 
 for images, labels in dataloader:
     images = images.to(device)
@@ -85,4 +92,7 @@ results = {
 loss = os.path.basename(args.model_path).split('-')[-1].replace('.pth', '')
 targeted = "yes" if args.targeted else "no"
 target = args.attack_target if args.targeted else "none"
-print(f"{args.dataset},{loss},{args.epsilon},{targeted},{target},{results['Accuracy']},{results['OneOffAccuracy']},{results['MAE']},{results['QWK']}")
+attack_loss = args.attack_loss if args.attack != 'none' else "none"
+
+print(f"{args.attack},{attack_loss},{args.dataset},{loss},{args.epsilon},{args.targeted},{target},{results['Accuracy']},{results['OneOffAccuracy']},{results['MAE']},{results['QWK']}")
+
