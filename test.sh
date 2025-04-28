@@ -32,14 +32,12 @@ for ATTACK_LOSS in "${ATTACK_LOSSES[@]}"; do
     done
 done
 
-for ATTACK_LOSS in "${ATTACK_LOSSES[@]}"; do
-    for DATASET in $DATASETS; do
-        for LOSS in $LOSSES; do
-            # Targeted attacks
-            for EPSILON in $EPSILONS; do
-                for TARGET in "${TARGETS[@]}"; do
-                    python test.py $DATASET models/model-$DATASET-$LOSS.pth --attack FFA --epsilon $EPSILON --targeted True --attack_target $TARGET --attack_loss $ATTACK_LOSS >> results.csv
-                done
+for DATASET in $DATASETS; do
+    for LOSS in $LOSSES; do
+        # Targeted attacks
+        for EPSILON in $EPSILONS; do
+            for TARGET in "${TARGETS[@]}"; do
+                python test.py $DATASET models/model-$DATASET-$LOSS.pth --attack FFA --epsilon $EPSILON --targeted True --attack_target $TARGET --attack_loss $ATTACK_LOSS >> results.csv
             done
         done
     done

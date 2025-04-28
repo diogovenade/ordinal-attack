@@ -3,3 +3,4 @@ models
 *.csv
 *.txt
 temp.sh
+gen

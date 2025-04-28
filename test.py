@@ -1,5 +1,6 @@
 import argparse
 import os
+import random
 parser = argparse.ArgumentParser()
 parser.add_argument('dataset')
 parser.add_argument('model_path')
@@ -32,6 +33,13 @@ dataloader = torch.utils.data.DataLoader(dataset, 32, False, num_workers=4, pin_
 model = torch.load(args.model_path, weights_only=False, map_location=device)
 model.eval()
 
+# For FastFeatureAttack
+class_to_indices = {}
+for idx, (_, label) in enumerate(dataset):
+    if label not in class_to_indices:
+        class_to_indices[label] = []
+    class_to_indices[label].append(idx)
+
 
 accuracy = MulticlassAccuracy(num_classes=num_classes).to(device)
 one_off = OneOff()
@@ -46,32 +54,44 @@ adversary = None
 if args.attack == 'GSA':
     if (args.attack_loss == 'CrossEntropy'):
         adversary = attacks.GradientSignAttack(model, lambda pred, true: cross_entropy_loss(pred, true), 
-                                               eps=args.epsilon, targeted=args.targeted)
+                                            eps=args.epsilon, targeted=args.targeted)
     else:
         adversary = attacks.GradientSignAttack(model, lambda pred, true: model.loss(pred, true).sum(), 
-                                           eps=args.epsilon, targeted=args.targeted)
+                                            eps=args.epsilon, targeted=args.targeted)
 elif args.attack == 'FFA':
-    if (args.attack_loss == 'CrossEntropy'):
-        adversary = attacks.FastFeatureAttack(model, lambda pred, true: cross_entropy_loss(pred, true), 
-                                               eps=args.epsilon)
-    else:
-        adversary = attacks.GradientSignAttack(model, lambda pred, true: model.loss(pred, true).sum(), 
-                                           eps=args.epsilon)
+    adversary = attacks.FastFeatureAttack(model, eps=args.epsilon)
 
 for images, labels in dataloader:
     images = images.to(device)
     labels = labels.to(device)
 
     if adversary:
-        images.requires_grad = True
-        if args.targeted:
-            if args.attack_target == 'next_class':
-                target_labels = torch.where(labels == num_classes - 1, labels - 1, labels + 1)
-            elif args.attack_target == 'furthest_class':
-                target_labels = torch.where(labels < num_classes // 2, num_classes - 1, 0)
-            images = adversary.perturb(images, target_labels)
-        else:
-            images = adversary.perturb(images, labels)
+        if args.attack == 'GSA':
+            if args.targeted:
+                if args.attack_target == 'next_class':
+                    target_labels = torch.where(labels == num_classes - 1, labels - 1, labels + 1)
+                elif args.attack_target == 'furthest_class':
+                    target_labels = torch.where(labels < num_classes // 2, num_classes - 1, 0)
+                images = adversary.perturb(images, target_labels)
+            else:
+                images = adversary.perturb(images, labels)
+        elif args.attack == 'FFA':
+            if args.targeted:
+                if args.attack_target == 'next_class':
+                    target_labels = torch.where(labels == num_classes - 1, labels - 1, labels + 1)
+                elif args.attack_target == 'furthest_class':
+                    target_labels = torch.where(labels < num_classes // 2, num_classes - 1, 0)
+                
+                guide_images = []
+                for target_label in target_labels:
+                    target_label_int = target_label.item()
+                    target_idx = random.choice(class_to_indices[target_label_int])
+                    guide_img, _ = dataset[target_idx]
+                    guide_images.append(guide_img)
+
+                guide_images = torch.stack(guide_images).to(device)
+                        
+                images = adversary.perturb(images, guide_images)
 
     with torch.no_grad():
         preds = model(images)
