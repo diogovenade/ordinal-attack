@@ -17,27 +17,28 @@ done
 for ATTACK_LOSS in "${ATTACK_LOSSES[@]}"; do
     for DATASET in $DATASETS; do
         for LOSS in $LOSSES; do
-            # Untargeted attacks
+            # Untargeted attacks - GSA
             for EPSILON in $EPSILONS; do
                 python test.py $DATASET models/model-$DATASET-$LOSS.pth --attack GSA --epsilon $EPSILON --attack_loss $ATTACK_LOSS >> results.csv
             done
 
-            # Targeted attacks
+            # Targeted attacks - GSA
             for EPSILON in $EPSILONS; do
                 for TARGET in "${TARGETS[@]}"; do
                     python test.py $DATASET models/model-$DATASET-$LOSS.pth --attack GSA --epsilon $EPSILON --targeted True --attack_target $TARGET --attack_loss $ATTACK_LOSS >> results.csv
                 done
             done
+
         done
     done
 done
 
 for DATASET in $DATASETS; do
     for LOSS in $LOSSES; do
-        # Targeted attacks
+        # Targeted attacks - FFA
         for EPSILON in $EPSILONS; do
             for TARGET in "${TARGETS[@]}"; do
-                python test.py $DATASET models/model-$DATASET-$LOSS.pth --attack FFA --epsilon $EPSILON --targeted True --attack_target $TARGET --attack_loss $ATTACK_LOSS >> results.csv
+                python test.py $DATASET models/model-$DATASET-$LOSS.pth --attack FFA --epsilon $EPSILON --targeted True --attack_target $TARGET >> results.csv
             done
         done
     done

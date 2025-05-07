@@ -8,7 +8,7 @@ parser.add_argument('--attack', type=str, default='none')
 parser.add_argument('--epsilon', type=float, default=0.0)
 parser.add_argument('--targeted', type=bool, default=False)
 parser.add_argument('--attack_target', type=str, default='next_class', choices=['next_class', 'furthest_class'])
-parser.add_argument('--attack_loss', type=str, default='ModelLoss', choices=['ModelLoss', 'CrossEntropy'])
+parser.add_argument('--attack_loss', type=str, default='Default', choices=['Default', 'ModelLoss', 'CrossEntropy'])
 args = parser.parse_args()
 
 import torch
@@ -40,6 +40,18 @@ for idx, (_, label) in enumerate(dataset):
         class_to_indices[label] = []
     class_to_indices[label].append(idx)
 
+def predict(x):
+    x = model.conv1(x)
+    x = model.bn1(x)
+    x = model.relu(x)
+    x = model.maxpool(x)
+    x = model.layer1(x)
+    x = model.layer2(x)
+    x = model.layer3(x)
+    x = model.layer4(x)
+    x = model.avgpool(x)
+    x = torch.flatten(x, 1)
+    return x
 
 accuracy = MulticlassAccuracy(num_classes=num_classes).to(device)
 one_off = OneOff()
@@ -59,7 +71,7 @@ if args.attack == 'GSA':
         adversary = attacks.GradientSignAttack(model, lambda pred, true: model.loss(pred, true).sum(), 
                                             eps=args.epsilon, targeted=args.targeted)
 elif args.attack == 'FFA':
-    adversary = attacks.FastFeatureAttack(model, eps=args.epsilon)
+    adversary = attacks.FastFeatureAttack(predict, eps=args.epsilon)
 
 for images, labels in dataloader:
     images = images.to(device)
@@ -112,7 +124,11 @@ results = {
 loss = os.path.basename(args.model_path).split('-')[-1].replace('.pth', '')
 targeted = "yes" if args.targeted else "no"
 target = args.attack_target if args.targeted else "none"
-attack_loss = args.attack_loss if args.attack != 'none' else "none"
+
+if args.attack_loss == 'Default':
+    if args.attack == 'FFA':
+        attack_loss = "MeanSquaredError"
+else:
+    attack_loss = args.attack_loss
 
 print(f"{args.attack},{attack_loss},{args.dataset},{loss},{args.epsilon},{args.targeted},{target},{results['Accuracy']},{results['OneOffAccuracy']},{results['MAE']},{results['QWK']}")
-
