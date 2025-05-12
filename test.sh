@@ -29,6 +29,18 @@ for ATTACK_LOSS in "${ATTACK_LOSSES[@]}"; do
                 done
             done
 
+            # Untargeted attacks - LBIA
+            for EPSILON in $EPSILONS; do
+                python test.py $DATASET models/model-$DATASET-$LOSS.pth --attack LBIA --epsilon $EPSILON --attack_loss $ATTACK_LOSS >> results.csv
+            done
+
+            # Targeted attacks - LBIA
+            for EPSILON in $EPSILONS; do
+                for TARGET in "${TARGETS[@]}"; do
+                    python test.py $DATASET models/model-$DATASET-$LOSS.pth --attack LBIA --epsilon $EPSILON --targeted True --attack_target $TARGET --attack_loss $ATTACK_LOSS >> results.csv
+                done
+            done
+
         done
     done
 done

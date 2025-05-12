@@ -72,13 +72,20 @@ if args.attack == 'GSA':
                                             eps=args.epsilon, targeted=args.targeted)
 elif args.attack == 'FFA':
     adversary = attacks.FastFeatureAttack(predict, eps=args.epsilon)
-
+elif args.attack == 'LBIA':
+    if (args.attack_loss == 'CrossEntropy'):
+        adversary = attacks.LinfBasicIterativeAttack(model, lambda pred, true: cross_entropy_loss(pred, true), 
+                                            eps=args.epsilon, targeted=args.targeted)
+    else:
+        adversary = attacks.LinfBasicIterativeAttack(model, lambda pred, true: model.loss(pred, true).sum(), 
+                                            eps=args.epsilon, targeted=args.targeted)
+        
 for images, labels in dataloader:
     images = images.to(device)
     labels = labels.to(device)
 
     if adversary:
-        if args.attack == 'GSA':
+        if args.attack in ['GSA', 'LBIA']:
             if args.targeted:
                 if args.attack_target == 'next_class':
                     target_labels = torch.where(labels == num_classes - 1, labels - 1, labels + 1)
