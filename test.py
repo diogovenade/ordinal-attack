@@ -63,29 +63,26 @@ def cross_entropy_loss(pred, true):
     return F.nll_loss(torch.log(probs), true)
 
 adversary = None
-if args.attack == 'GSA':
-    if (args.attack_loss == 'CrossEntropy'):
-        adversary = attacks.GradientSignAttack(model, lambda pred, true: cross_entropy_loss(pred, true), 
-                                            eps=args.epsilon, targeted=args.targeted)
+
+if args.attack in ['GradientSignAttack', 'LinfBasicIterativeAttack', 'PGDAttack', 'MomentumIterativeAttack']:
+    if args.attack_loss == 'CrossEntropy':
+        adversary = getattr(attacks, args.attack)(model, lambda pred, true: cross_entropy_loss(pred, true), 
+                                                  eps=args.epsilon, targeted=args.targeted)
     else:
-        adversary = attacks.GradientSignAttack(model, lambda pred, true: model.loss(pred, true).sum(), 
+        adversary = getattr(attacks, args.attack)(model, lambda pred, true: model.loss(pred, true).sum(), 
                                             eps=args.epsilon, targeted=args.targeted)
+
+
 elif args.attack == 'FFA':
     adversary = attacks.FastFeatureAttack(predict, eps=args.epsilon)
-elif args.attack == 'LBIA':
-    if (args.attack_loss == 'CrossEntropy'):
-        adversary = attacks.LinfBasicIterativeAttack(model, lambda pred, true: cross_entropy_loss(pred, true), 
-                                            eps=args.epsilon, targeted=args.targeted)
-    else:
-        adversary = attacks.LinfBasicIterativeAttack(model, lambda pred, true: model.loss(pred, true).sum(), 
-                                            eps=args.epsilon, targeted=args.targeted)
         
 for images, labels in dataloader:
     images = images.to(device)
     labels = labels.to(device)
 
     if adversary:
-        if args.attack in ['GSA', 'LBIA']:
+        if args.attack in ['GradientSignAttack', 'LinfBasicIterativeAttack', 'PGDAttack', 
+                           'MomentumIterativeAttack']:
             if args.targeted:
                 if args.attack_target == 'next_class':
                     target_labels = torch.where(labels == num_classes - 1, labels - 1, labels + 1)
@@ -132,10 +129,21 @@ loss = os.path.basename(args.model_path).split('-')[-1].replace('.pth', '')
 targeted = "yes" if args.targeted else "no"
 target = args.attack_target if args.targeted else "none"
 
+if args.attack == "GradientSignAttack":
+    attack = "GSA"
+elif args.attack == "LinfBasicIterativeAttack":
+    attack = "LBIA"
+elif args.attack == "PGDAttack":
+    attack = "PGDA"
+elif args.attack == "MomentumIterativeAttack":
+    attack = "MIA"
+elif args.attack == "FFA":
+    attack = "FFA"
+
 if args.attack_loss == 'Default':
     if args.attack == 'FFA':
         attack_loss = "MeanSquaredError"
 else:
     attack_loss = args.attack_loss
 
-print(f"{args.attack},{attack_loss},{args.dataset},{loss},{args.epsilon},{args.targeted},{target},{results['Accuracy']},{results['OneOffAccuracy']},{results['MAE']},{results['QWK']}")
+print(f"{attack},{attack_loss},{args.dataset},{loss},{args.epsilon},{args.targeted},{target},{results['Accuracy']},{results['OneOffAccuracy']},{results['MAE']},{results['QWK']}")

@@ -4,6 +4,7 @@ LOSSES="CrossEntropy BinomialUnimodal_CE CO2 UnimodalNet OrdinalEncoding"
 EPSILONS="0.01 0.03 0.05 0.1 0.15 0.2 0.25 0.3"
 TARGETS=("next_class" "furthest_class")
 ATTACK_LOSSES=("ModelLoss" "CrossEntropy")
+ATTACKS=("GradientSignAttack" "LinfBasicIterativeAttack" "PGDAttack" "MomentumIterativeAttack")
 
 echo "Attack,AttackLoss,Dataset,Loss,Epsilon,Targeted,Target,Accuracy,OneOffAccuracy,MAE,QWK" > results.csv
 
@@ -17,30 +18,20 @@ done
 for ATTACK_LOSS in "${ATTACK_LOSSES[@]}"; do
     for DATASET in $DATASETS; do
         for LOSS in $LOSSES; do
-            # Untargeted attacks - GSA
-            for EPSILON in $EPSILONS; do
-                python test.py $DATASET models/model-$DATASET-$LOSS.pth --attack GSA --epsilon $EPSILON --attack_loss $ATTACK_LOSS >> results.csv
-            done
-
-            # Targeted attacks - GSA
-            for EPSILON in $EPSILONS; do
-                for TARGET in "${TARGETS[@]}"; do
-                    python test.py $DATASET models/model-$DATASET-$LOSS.pth --attack GSA --epsilon $EPSILON --targeted True --attack_target $TARGET --attack_loss $ATTACK_LOSS >> results.csv
+            for ATTACK in "${ATTACKS[@]}"; do
+                # Untargeted attack
+                for EPSILON in $EPSILONS; do
+                    python test.py $DATASET models/model-$DATASET-$LOSS.pth --attack $ATTACK --epsilon $EPSILON --attack_loss $ATTACK_LOSS >> results.csv
                 done
-            done
 
-            # Untargeted attacks - LBIA
-            for EPSILON in $EPSILONS; do
-                python test.py $DATASET models/model-$DATASET-$LOSS.pth --attack LBIA --epsilon $EPSILON --attack_loss $ATTACK_LOSS >> results.csv
-            done
-
-            # Targeted attacks - LBIA
-            for EPSILON in $EPSILONS; do
-                for TARGET in "${TARGETS[@]}"; do
-                    python test.py $DATASET models/model-$DATASET-$LOSS.pth --attack LBIA --epsilon $EPSILON --targeted True --attack_target $TARGET --attack_loss $ATTACK_LOSS >> results.csv
+                # Targeted attack
+                for EPSILON in $EPSILONS; do
+                    for TARGET in "${TARGETS[@]}"; do
+                        python test.py $DATASET models/model-$DATASET-$LOSS.pth --attack $ATTACK --epsilon $EPSILON --targeted True --attack_target $TARGET --attack_loss $ATTACK_LOSS >> results.csv
+                    done
                 done
-            done
 
+            done
         done
     done
 done
