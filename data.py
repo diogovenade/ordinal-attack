@@ -11,6 +11,9 @@ import json
 import os
 
 def split(ds, split, seed):
+    # FIXME: we could use stratified sampling
+    # sklearn.model_selection.train_test_split(range(len(ds)), train_size=0.2, random_state=42, statify=labels)
+
     # random holdout: train-val-test 60-20-20
     rng = np.random.default_rng(123+seed)
     ix = rng.choice(len(ds), len(ds), False)

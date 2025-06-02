@@ -1,6 +1,6 @@
 #!/bin/bash
 DATASETS="CARSDB CSAW_M FFB FOCUSPATH UTKFACE"
-LOSSES="CrossEntropy BinomialUnimodal_CE CO2 UnimodalNet OrdinalEncoding"
+LOSSES="CrossEntropy BinomialUnimodal_CE CO2 UnimodalNet OrdinalEncoding ORD_ACL VS_SL"
 EPSILONS="0.01 0.03 0.05 0.1 0.15 0.2 0.25 0.3"
 TARGETS=("next_class" "furthest_class")
 ATTACK_LOSSES=("ModelLoss" "CrossEntropy")

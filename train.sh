@@ -1,6 +1,6 @@
 #!/bin/bash
 DATASETS="CARSDB CSAW_M FFB FOCUSPATH UTKFACE"
-LOSSES="CrossEntropy BinomialUnimodal_CE CO2 UnimodalNet OrdinalEncoding"
+LOSSES="CrossEntropy BinomialUnimodal_CE CO2 UnimodalNet OrdinalEncoding ORD_ACL VS_SL"
 
 for DATASET in $DATASETS; do
     for LOSS in $LOSSES; do

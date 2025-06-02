@@ -30,15 +30,27 @@ dataset = getattr(data, args.dataset)('/data/ordinal', transforms)
 num_classes = dataset.K
 dataloader = torch.utils.data.DataLoader(dataset, 32, False, num_workers=4, pin_memory=True)
 
-model = torch.load(args.model_path, weights_only=False, map_location=device)
-model.eval()
-
 # For FastFeatureAttack
 class_to_indices = {}
-for idx, (_, label) in enumerate(dataset):
+for i in range(len(dataset)):
+    label = dataset.__getitem__(i, True)
     if label not in class_to_indices:
         class_to_indices[label] = []
-    class_to_indices[label].append(idx)
+    class_to_indices[label].append(i)
+# it can happen that some classes do not have test samples, in that case, use the
+# previous class
+for k in range(num_classes):
+    if k in class_to_indices:
+        prev_class = class_to_indices[k]
+        break
+for k in range(num_classes):
+    if k not in class_to_indices:
+        class_to_indices[k] = prev_class
+    else:
+        prev_class = class_to_indices[k]
+
+model = torch.load(args.model_path, weights_only=False, map_location=device)
+model.eval()
 
 def predict(x):
     x = model.conv1(x)
@@ -88,9 +100,9 @@ for images, labels in dataloader:
                     target_labels = torch.where(labels == num_classes - 1, labels - 1, labels + 1)
                 elif args.attack_target == 'furthest_class':
                     target_labels = torch.where(labels < num_classes // 2, num_classes - 1, 0)
-                images = adversary.perturb(images, target_labels)
+                images_perturbed = adversary.perturb(images, target_labels)
             else:
-                images = adversary.perturb(images, labels)
+                images_perturbed = adversary.perturb(images, labels)
         elif args.attack == 'FFA':
             if args.targeted:
                 if args.attack_target == 'next_class':
@@ -100,17 +112,18 @@ for images, labels in dataloader:
                 
                 guide_images = []
                 for target_label in target_labels:
-                    target_label_int = target_label.item()
-                    target_idx = random.choice(class_to_indices[target_label_int])
+                    target_idx = random.choice(class_to_indices[target_label.item()])
                     guide_img, _ = dataset[target_idx]
                     guide_images.append(guide_img)
 
                 guide_images = torch.stack(guide_images).to(device)
                         
-                images = adversary.perturb(images, guide_images)
+                images_perturbed = adversary.perturb(images, guide_images)
+    else:
+        images_perturbed = images
 
     with torch.no_grad():
-        preds = model(images)
+        preds = model(images_perturbed)
     preds = model.loss.to_classes(preds)
 
     accuracy.update(preds, labels)
@@ -146,4 +159,8 @@ if args.attack_loss == 'Default':
 else:
     attack_loss = args.attack_loss
 
-print(f"{attack},{attack_loss},{args.dataset},{loss},{args.epsilon},{args.targeted},{target},{results['Accuracy']},{results['OneOffAccuracy']},{results['MAE']},{results['QWK']}")
+if args.attack == 'none':
+    attack = 'None'
+    attack_loss = 'None'
+
+print(f"{attack},{attack_loss},{args.dataset},{loss},{args.epsilon},{targeted},{target},{results['Accuracy']},{results['OneOffAccuracy']},{results['MAE']},{results['QWK']}")

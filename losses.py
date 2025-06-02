@@ -153,7 +153,7 @@ class OrdinalEncoding(OrdinalLoss):
         prob_k = probs[:, [-1]]
         probs = torch.cat((prob_0, probs[:, :-1]-probs[:, 1:], prob_k), 1)
         # there may be small discrepancies
-        probs = torch.clamp(probs, 0, 1)
+        # probs = torch.clamp(probs, 0, 1)
         probs = probs / probs.sum(1, keepdim=True)
         return probs
 
