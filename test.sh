@@ -1,10 +1,10 @@
 #!/bin/bash
 DATASETS="CARSDB CSAW_M FFB FOCUSPATH UTKFACE"
-LOSSES="CrossEntropy BinomialUnimodal_CE CO2 UnimodalNet OrdinalEncoding ORD_ACL VS_SL"
-EPSILONS="0.01 0.03 0.05 0.1 0.15 0.2 0.25 0.3"
+LOSSES="CrossEntropy BinomialUnimodal_CE CO2 UnimodalNet OrdinalEncoding ORD_ACL"
+EPSILONS="0.005 0.02 0.045 0.08 0.125 0.18 0.245"
 TARGETS=("next_class" "furthest_class")
 ATTACK_LOSSES=("ModelLoss" "CrossEntropy")
-ATTACKS=("GradientSignAttack" "LinfBasicIterativeAttack" "PGDAttack" "MomentumIterativeAttack")
+ATTACKS=("GradientSignAttack" "LinfBasicIterativeAttack" "MomentumIterativeAttack")
 
 echo "Attack,AttackLoss,Dataset,Loss,Epsilon,Targeted,Target,Accuracy,OneOffAccuracy,MAE,QWK" > results.csv
 

@@ -76,7 +76,7 @@ def cross_entropy_loss(pred, true):
 
 adversary = None
 
-if args.attack in ['GradientSignAttack', 'LinfBasicIterativeAttack', 'PGDAttack', 'MomentumIterativeAttack']:
+if args.attack in ['GradientSignAttack', 'LinfBasicIterativeAttack', 'MomentumIterativeAttack']:
     if args.attack_loss == 'CrossEntropy':
         adversary = getattr(attacks, args.attack)(model, lambda pred, true: cross_entropy_loss(pred, true), 
                                                   eps=args.epsilon, targeted=args.targeted)
@@ -93,8 +93,7 @@ for images, labels in dataloader:
     labels = labels.to(device)
 
     if adversary:
-        if args.attack in ['GradientSignAttack', 'LinfBasicIterativeAttack', 'PGDAttack', 
-                           'MomentumIterativeAttack']:
+        if args.attack in ['GradientSignAttack', 'LinfBasicIterativeAttack', 'MomentumIterativeAttack']:
             if args.targeted:
                 if args.attack_target == 'next_class':
                     target_labels = torch.where(labels == num_classes - 1, labels - 1, labels + 1)
@@ -146,8 +145,6 @@ if args.attack == "GradientSignAttack":
     attack = "GSA"
 elif args.attack == "LinfBasicIterativeAttack":
     attack = "LBIA"
-elif args.attack == "PGDAttack":
-    attack = "PGDA"
 elif args.attack == "MomentumIterativeAttack":
     attack = "MIA"
 elif args.attack == "FFA":
@@ -160,7 +157,7 @@ else:
     attack_loss = args.attack_loss
 
 if args.attack == 'none':
-    attack = 'None'
-    attack_loss = 'None'
+    attack = 'none'
+    attack_loss = 'none'
 
 print(f"{attack},{attack_loss},{args.dataset},{loss},{args.epsilon},{targeted},{target},{results['Accuracy']},{results['OneOffAccuracy']},{results['MAE']},{results['QWK']}")

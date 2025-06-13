@@ -55,7 +55,7 @@ def gen_tables(output, rows, super_columns, super_higherisbetter, columns, dfs):
 
 df = pd.read_csv('results.csv')
 df['Loss'] = df['Loss'].map(rename_losses).fillna(df['Loss'])
-dataset = 'UTKFACE'
+dataset = 'CARSDB'
 
 base_df = df[
     (df['Dataset'] == dataset) &

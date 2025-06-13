@@ -154,7 +154,7 @@ class OrdinalEncoding(OrdinalLoss):
         probs = torch.cat((prob_0, probs[:, :-1]-probs[:, 1:], prob_k), 1)
         # there may be small discrepancies
         # probs = torch.clamp(probs, 0, 1)
-        probs = probs / probs.sum(1, keepdim=True)
+        probs = probs / probs.sum(1, keepdim=True).detach()
         return probs
 
     def to_classes(self, ypred, method=None):
