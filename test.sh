@@ -18,6 +18,9 @@ done
 for ATTACK_LOSS in "${ATTACK_LOSSES[@]}"; do
     for DATASET in $DATASETS; do
         for LOSS in $LOSSES; do
+            if [[ ("$LOSS" == "OrdinalEncoding" || "$LOSS" == "ORD_ACL") && "$ATTACK_LOSS" == "CrossEntropy" ]]; then
+                continue
+            fi
             for ATTACK in "${ATTACKS[@]}"; do
                 # Untargeted attack
                 for EPSILON in $EPSILONS; do
