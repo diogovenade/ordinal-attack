@@ -71,8 +71,23 @@ mae = MeanAbsoluteError()
 qwk = QuadraticWeightedKappa()
 
 def cross_entropy_loss(pred, true):
-    probs = model.loss.to_proba(pred)
-    return F.nll_loss(torch.log(probs), true)
+    if type(model.loss).__name__ == "ORD_ACL":
+        probs = model.loss.to_proba(pred, logprobs=True)
+        return F.nll_loss(probs, true)
+    else:
+        probs = model.loss.to_proba(pred)
+        return F.nll_loss(torch.log(probs), true)
+
+# For LocalSearchAttack
+class ProbWrapper(torch.nn.Module):
+    def __init__(self, model):
+        super().__init__()
+        self.model = model
+        self.loss = model.loss
+
+    def forward(self, x):
+        logits = self.model(x)
+        return self.loss.to_proba(logits)
 
 adversary = None
 
@@ -87,13 +102,17 @@ if args.attack in ['GradientSignAttack', 'LinfBasicIterativeAttack', 'MomentumIt
 
 elif args.attack == 'FFA':
     adversary = attacks.FastFeatureAttack(predict, eps=args.epsilon)
+
+elif args.attack == 'LocalSearchAttack':
+    adversary = attacks.LocalSearchAttack(ProbWrapper(model), targeted=args.targeted)
         
 for images, labels in dataloader:
     images = images.to(device)
     labels = labels.to(device)
 
     if adversary:
-        if args.attack in ['GradientSignAttack', 'LinfBasicIterativeAttack', 'MomentumIterativeAttack']:
+        if args.attack in ['GradientSignAttack', 'LinfBasicIterativeAttack', 'MomentumIterativeAttack', 
+                           'LocalSearchAttack']:
             if args.targeted:
                 if args.attack_target == 'next_class':
                     target_labels = torch.where(labels == num_classes - 1, labels - 1, labels + 1)
@@ -149,6 +168,8 @@ elif args.attack == "MomentumIterativeAttack":
     attack = "MIA"
 elif args.attack == "FFA":
     attack = "FFA"
+elif args.attack == "LocalSearchAttack":
+    attack = "LSA"
 
 if args.attack_loss == 'Default':
     if args.attack == 'FFA':
@@ -160,4 +181,10 @@ if args.attack == 'none':
     attack = 'none'
     attack_loss = 'none'
 
-print(f"{attack},{attack_loss},{args.dataset},{loss},{args.epsilon},{targeted},{target},{results['Accuracy']},{results['OneOffAccuracy']},{results['MAE']},{results['QWK']}")
+if attack == "LSA":
+    attack_loss = "N/A"
+    epsilon = "N/A"
+else:
+    epsilon = args.epsilon
+
+print(f"{attack},{attack_loss},{args.dataset},{loss},{epsilon},{targeted},{target},{results['Accuracy']},{results['OneOffAccuracy']},{results['MAE']},{results['QWK']}")

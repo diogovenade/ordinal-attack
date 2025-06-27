@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 import json
 import os
+from collections import Counter
 
 def split(ds, split, seed):
     # FIXME: we could use stratified sampling
@@ -248,6 +249,16 @@ if __name__ == '__main__':
     i = np.random.choice(len(ds))
     print('K:', ds.K)
     print('training N:', len(ds))
+    labels = [y for _, y in ds]
+    counts = Counter(labels)
+    IR = 0
+    for k in range(ds.K):
+        nk = counts[k]
+        if nk == 0:
+            continue
+        IR += (len(ds) - nk) / ((ds.K - 1) * nk)
+    IR /= ds.K
+    print('IR:', IR)
     x, y = ds[i]
     plt.imshow(x.permute(1, 2, 0))
     plt.title(y)

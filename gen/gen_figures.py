@@ -42,11 +42,11 @@ def gen_pgfplots(output, xaxis, yaxis, color, df):
     os.remove(output[:-3] + 'aux')
     os.remove(output[:-3] + 'log')
 
-df = pd.read_csv('gsa.csv')
+df = pd.read_csv('gsa.csv') # change to CSV of desired attack
 df['Loss'] = df['Loss'].map(rename_losses).fillna(df['Loss'])
 
 for attack_loss in ['CrossEntropy', 'ModelLoss', 'MeanSquaredError']:
-    dataset_ix = df['Dataset'] == 'CARSDB'
+    dataset_ix = df['Dataset'] == 'CARSDB' # change to desired dataset
     attack_ix = df['AttackLoss'] == attack_loss
     epsilon_below_015_ix = df['Epsilon'] <= 0.3
     epsilon0_ix = df['Epsilon'] == 0

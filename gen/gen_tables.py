@@ -18,6 +18,8 @@ def gen_tables(output, rows, super_columns, super_higherisbetter, columns, dfs):
     assert len(super_columns) == len(super_higherisbetter) == len(dfs)
     tables = []
     all_cols = sorted(set().union(*(df[columns].unique() for df in dfs)))
+    if 'CE' in all_cols:
+        all_cols = ['CE'] + [col for col in all_cols if col != 'CE']
     ncols = len(all_cols)
     for df, super_column, higherisbetter in zip(dfs, super_columns, super_higherisbetter):
         pivoted = df.pivot_table(index=rows, columns=columns, values=super_column)
@@ -25,8 +27,14 @@ def gen_tables(output, rows, super_columns, super_higherisbetter, columns, dfs):
         pivoted = pivoted.iloc[::-1]
         pivoted.index = pivoted.index.map(lambda x: ' '.join(latex_escape(str(y).replace('_', ' ')) for y in (x if isinstance(x, tuple) else (x,))))
         pivoted.columns = [latex_escape(str(col)) for col in pivoted.columns]
-        pivoted = pivoted.applymap(latex_escape)
-        styled = pivoted.style.background_gradient(cmap="RdYlGn" if higherisbetter else "RdYlGn_r", axis=None).format("{:.3f}")
+        styled = (
+            pivoted.style
+            .background_gradient(cmap="RdYlGn" if higherisbetter else "RdYlGn_r", axis=None)
+            .format(lambda x: f"{x:.3f}" if pd.notnull(x) else '---')
+        )
+
+        pivoted = pivoted.fillna('---').applymap(latex_escape)
+
         table = styled.to_latex(convert_css=True)
         table = table.split('\n')[1:-2]
         tables.append(table)
@@ -55,11 +63,11 @@ def gen_tables(output, rows, super_columns, super_higherisbetter, columns, dfs):
 
 df = pd.read_csv('results.csv')
 df['Loss'] = df['Loss'].map(rename_losses).fillna(df['Loss'])
-dataset = 'CARSDB'
+dataset = 'CARSDB' # change dataset as needed
 
 base_df = df[
     (df['Dataset'] == dataset) &
-    (df['AttackLoss'].isin(['ModelLoss', 'none', 'MeanSquaredError']))
+    (df['AttackLoss'].isin(['ModelLoss', 'MeanSquaredError', 'none']))
 ]
 
 mae_worst = (

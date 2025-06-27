@@ -18,7 +18,7 @@ done
 for ATTACK_LOSS in "${ATTACK_LOSSES[@]}"; do
     for DATASET in $DATASETS; do
         for LOSS in $LOSSES; do
-            if [[ ("$LOSS" == "OrdinalEncoding" || "$LOSS" == "ORD_ACL") && "$ATTACK_LOSS" == "CrossEntropy" ]]; then
+            if [[ "$LOSS" == "ORD_ACL" && "$ATTACK_LOSS" == "CrossEntropy" ]]; then
                 continue
             fi
             for ATTACK in "${ATTACKS[@]}"; do
@@ -46,6 +46,17 @@ for DATASET in $DATASETS; do
             for TARGET in "${TARGETS[@]}"; do
                 python test.py $DATASET models/model-$DATASET-$LOSS.pth --attack FFA --epsilon $EPSILON --targeted True --attack_target $TARGET >> results.csv
             done
+        done
+    done
+done
+
+for DATASET in $DATASETS; do
+    for LOSS in $LOSSES; do
+        # Untargeted attacks - LSA
+        python test.py $DATASET models/model-$DATASET-$LOSS.pth --attack LocalSearchAttack >> results.csv
+        # Targeted attacks - LSA
+        for TARGET in "${TARGETS[@]}"; do
+            python test.py $DATASET models/model-$DATASET-$LOSS.pth --attack LocalSearchAttack --targeted True --attack_target $TARGET >> results.csv
         done
     done
 done
